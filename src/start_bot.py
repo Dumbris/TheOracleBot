@@ -33,7 +33,7 @@ def answer_about_friendship(question):
     return BERT([FRIEND], [question])
 
 
-def answer_if_confident(question, context, strictness=1.0):
+def answer_if_confident(question, context, strictness=0.7):
     """
     strictness : bigger the strictness, bigger the threshold
     :return:
