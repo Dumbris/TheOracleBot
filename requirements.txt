@@ -1,5 +1,5 @@
 pyTelegramBotAPI
-tensorflow-gpu====1.14.0
+tensorflow-gpu==1.14.0
 deeppavlov
 regex
 keras_applications==1.0.2

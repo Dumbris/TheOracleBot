@@ -5,6 +5,7 @@ sys.path.append('.')
 from gpt.src.generate_from_string import continue_string, get_future_prediction
 from deeppavlov import build_model, configs
 import numpy as np
+import pandas as pd
 
 print('\n\nLoading model')
 BERT = build_model(configs.squad.squad, download=True)
@@ -13,6 +14,7 @@ print('\n\n\n\n\n', 30*'---', '\nCreating bot')
 token = open('telegram_token', 'r').read()
 bot = telebot.TeleBot(token)
 
+df = pd.read_json("data/london_2020s.jsonl", lines=True)
 
 futures = {}
 
@@ -46,8 +48,7 @@ def answer_if_confident(question, context, strictness=1.0):
 
     threshold = np.sqrt(Ek*Ea)*strictness
 
-    return answers[0] if Eq > threshold else "Neither the tea leaves " \
-                                             "nor GPT-2 have found an answer to your question... " \
+    return answers[0] if Eq > threshold else "GPT-2 have found an answer to your question... " \
                                              "I hope you eventually find out what you are searching for."
 
 
@@ -57,25 +58,28 @@ def extracted_answers(questions, context):
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.send_message(message.chat.id, "Hello {}, I was waiting for you. ".format(message.chat.first_name) +
-                                      "Be careful with the vase.\n" +
-                                      " I am listening to your future. " +
+    restaurant_sample = df[df.text.str.contains("\n")].sample(1)
+    name = restaurant_sample["name"].values[0]
+    text = restaurant_sample["text"].values[0]
+    bot.send_message(message.chat.id, "Hello {}, You were in {}, ".format(message.chat.first_name, name) +
+                                      "but looks like you forgot everything... I am listening to your memories. " +
                                       "Wait for a bit and I will come back with something for you.")
-    futures[message.chat.id] = get_future_prediction(message.chat.first_name)
+    review = [t.replace("...", " ") for t in text.split("\n") if t.strip() != '']
+    futures[message.chat.id] = get_future_prediction(review)
 
     markup = types.ReplyKeyboardMarkup(row_width=1)
-    itembtn1 = types.KeyboardButton('Please show me my whole future.')
+    itembtn1 = types.KeyboardButton('Total recall.')
     markup.add(itembtn1)
 
     bot.send_message(message.chat.id, 'You can ask me anything now, '
-                     'or you can try to dive all by yourself in the messages from your future.',
+                     'or you can try to dive all by yourself in the messages from your memory.',
                      reply_markup=markup)
 
 
-@bot.message_handler(regexp="Please show me my whole future.")
+@bot.message_handler(regexp="Total recall.")
 def show_future(message):
     if message.chat.id in futures:
-        bot.send_message(message.chat.id, 'Behold your future: ' + futures[message.chat.id])
+        bot.send_message(message.chat.id, '>: ' + futures[message.chat.id])
 
 
 @bot.message_handler(regexp="test")

@@ -4,19 +4,22 @@ import json
 import os
 import numpy as np
 import tensorflow as tf
+import random
 
 from . import model, sample, encoder
 
 
-def continue_string(raw_text, length=None,
-                    model_name='345M',  # 117M
-                    seed=None,
-                    nsamples=1,
-                    batch_size=1,
-                    temperature=1.,
-                    top_k=30,
-                    models_dir='data/models',
-                    ):
+def continue_string(
+    raw_text,
+    length=None,
+    model_name="774M",  # 117M
+    seed=None,
+    nsamples=1,
+    batch_size=1,
+    temperature=1.0,
+    top_k=30,
+    models_dir="data/models",
+):
     """
     Interactively run the model
     :model_name=117M : String, which model to use
@@ -37,7 +40,7 @@ def continue_string(raw_text, length=None,
      :models_dir : path to parent folder containing model subfolders
      (i.e. contains the <model_name> folder)
     """
-    print('\n\n\n\n', '---' * 30, 'using model', model_name)
+    print("\n\n\n\n", "---" * 30, "using model", model_name)
     models_dir = os.path.expanduser(os.path.expandvars(models_dir))
     if batch_size is None:
         batch_size = 1
@@ -45,23 +48,27 @@ def continue_string(raw_text, length=None,
 
     enc = encoder.get_encoder(model_name, models_dir)
     hparams = model.default_hparams()
-    with open(os.path.join(models_dir, model_name, 'hparams.json')) as f:
+    with open(os.path.join(models_dir, model_name, "hparams.json")) as f:
         hparams.override_from_dict(json.load(f))
 
     if length is None:
         length = hparams.n_ctx // 2
     elif length > hparams.n_ctx:
-        raise ValueError("Can't get samples longer than window size: %s" % hparams.n_ctx)
+        raise ValueError(
+            "Can't get samples longer than window size: %s" % hparams.n_ctx
+        )
 
     with tf.Session(graph=tf.Graph()) as sess:
         context = tf.placeholder(tf.int32, [batch_size, None])
         np.random.seed(seed)
         tf.set_random_seed(seed)
         output = sample.sample_sequence(
-            hparams=hparams, length=length,
+            hparams=hparams,
+            length=length,
             context=context,
             batch_size=batch_size,
-            temperature=temperature, top_k=top_k
+            temperature=temperature,
+            top_k=top_k,
         )
 
         saver = tf.train.Saver()
@@ -72,9 +79,9 @@ def continue_string(raw_text, length=None,
         generated = 0
         gen_text = []
         for _ in range(nsamples // batch_size):
-            out = sess.run(output, feed_dict={
-                context: [context_tokens for _ in range(batch_size)]
-            })[:, len(context_tokens):]
+            out = sess.run(
+                output, feed_dict={context: [context_tokens for _ in range(batch_size)]}
+            )[:, len(context_tokens) :]
             for i in range(batch_size):
                 generated += 1
                 text = enc.decode(out[i])
@@ -82,24 +89,28 @@ def continue_string(raw_text, length=None,
     return gen_text[0]
 
 
-def get_future_prediction(name):
+def get_future_prediction_old(name):
     tag_seed = "cafe restaurant London waiter food review"
-    input_text = tag_seed + "In the year of {} {} will begin".format(np.random.randint(2020, 2070), name)
-    time_markers = ["Next month {} will".format(name),
-                    "In autumn it will be",
-                    "By the end of winter {} will have".format(name),
-                    "In the end, {} will die because of".format(name)]
+    input_text = tag_seed + "In the year of {} {} will begin".format(
+        np.random.randint(2020, 2070), name
+    )
+    time_markers = [
+        "Next month {} will".format(name),
+        "In autumn it will be",
+        "By the end of winter {} will have".format(name),
+        "In the end, {} will die because of".format(name),
+    ]
     time_index = 0
     default_time_marker = "And then "
 
     new_text = input_text
     while len(new_text.split()) - len(input_text.split()) < 400:
         new_text += continue_string(new_text, length=80)
-        if '<|endoftext|>' in new_text:
-            new_text = new_text[:new_text.rfind('<|endoftext|>')]
+        if "<|endoftext|>" in new_text:
+            new_text = new_text[: new_text.rfind("<|endoftext|>")]
 
-        period_position = new_text.rfind('.')
-        new_text = new_text[:period_position + 1]
+        period_position = new_text.rfind(".")
+        new_text = new_text[: period_position + 1]
         new_text += "\n"
         if time_index < len(time_markers):
             new_text += time_markers[time_index]
@@ -107,10 +118,48 @@ def get_future_prediction(name):
         else:
             new_text += default_time_marker
 
-    return new_text[len(tag_seed):new_text.rfind('\n')]
+    return new_text[len(tag_seed) : new_text.rfind("\n")]
 
 
-if __name__ == '__main__':
+starters = [
+    "The place is ",
+    "The service was ",
+    "Waitters really ",
+    "Ate here ",
+    "However be prepared",
+    "And then ",
+    "The decoration was ",
+    "The atmosphere as ",
+    "I got very ",
+]
+
+
+def get_future_prediction(lines):
+    tag_seed = "England London UK cafe restaurant food cooking "
+    input_text = tag_seed + lines[0] + "\n"
+    _index = 0
+    lines = starters + lines[:1]
+    lines = random.sample(lines, len(lines))
+    new_text = input_text
+    while len(new_text.split()) - len(input_text.split()) < 400:
+        new_text += continue_string(new_text, length=80)
+        if "<|endoftext|>" in new_text:
+            new_text = new_text[: new_text.rfind("<|endoftext|>")]
+        period_position = new_text.rfind(".")
+        new_text = new_text[: period_position + 1]
+        new_text += "\n"
+        if _index < len(lines):
+            new_text += lines[_index]
+            _index += 1
+        else:
+            new_text += random.choice(starters)
+
+    return new_text[len(tag_seed) : new_text.rfind("\n")]
+
+
+if __name__ == "__main__":
     # enc, output, context = start_model()
-    generated = continue_string('You have tried for a long time to make this model work, but')[0]
-    print('\n\n', generated)
+    generated = continue_string(
+        "You have tried for a long time to make this model work, but"
+    )[0]
+    print("\n\n", generated)
