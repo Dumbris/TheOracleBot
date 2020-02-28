@@ -4,6 +4,6 @@ regex
 keras_applications==1.0.2
 keras_preprocessing==1.0.1
 pandas
-aiogram
+aiogram==1.4
 aiohttp_socks
 aiofiles
