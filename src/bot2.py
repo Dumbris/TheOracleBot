@@ -122,4 +122,5 @@ async def echo_message(msg: types.Message):
     await bot.send_message(msg.from_user.id, "Try /start")
 
 if __name__ == '__main__':
+    print('\n\n\n\n\n', 30*'---', '\nTry your bot')
     executor.start_polling(dp)
