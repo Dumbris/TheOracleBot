@@ -4,3 +4,5 @@ install:
 	python gpt/download_model.py 774M
 run:
 	python src/start_bot.py
+run2:
+	python src/bot2.py
