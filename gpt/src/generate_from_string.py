@@ -104,7 +104,7 @@ def get_future_prediction_old(name):
     default_time_marker = "And then "
 
     new_text = input_text
-    while len(new_text.split()) - len(input_text.split()) < 400:
+    while len(new_text.split()) - len(input_text.split()) < 200:
         new_text += continue_string(new_text, length=80)
         if "<|endoftext|>" in new_text:
             new_text = new_text[: new_text.rfind("<|endoftext|>")]
@@ -141,8 +141,8 @@ def get_future_prediction(lines):
     lines = starters + lines[:1]
     lines = random.sample(lines, len(lines))
     new_text = input_text
-    while len(new_text.split()) - len(input_text.split()) < 300:
-        new_text += continue_string(new_text, length=40)
+    while len(new_text.split()) - len(input_text.split()) < 200:
+        new_text += continue_string(new_text, length=80)
         if "<|endoftext|>" in new_text:
             new_text = new_text[: new_text.rfind("<|endoftext|>")]
         period_position = new_text.rfind(".")
