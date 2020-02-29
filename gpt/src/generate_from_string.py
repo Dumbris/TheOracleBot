@@ -12,7 +12,7 @@ from . import model, sample, encoder
 def continue_string(
     raw_text,
     length=None,
-    model_name="774M",  # 117M
+    model_name="1558M",  # 117M , 774M
     seed=None,
     nsamples=1,
     batch_size=1,
@@ -104,8 +104,8 @@ def get_future_prediction_old(name):
     default_time_marker = "And then "
 
     new_text = input_text
-    while len(new_text.split()) - len(input_text.split()) < 200:
-        new_text += continue_string(new_text, length=80)
+    while len(new_text.split()) - len(input_text.split()) < 100:
+        new_text += continue_string(new_text, length=50)
         if "<|endoftext|>" in new_text:
             new_text = new_text[: new_text.rfind("<|endoftext|>")]
 
@@ -124,8 +124,7 @@ def get_future_prediction_old(name):
 starters = [
     "The place is ",
     "The service was ",
-    "Waitters really ",
-    "Ate here ",
+    "Waiters really ",
     "However be prepared",
     "And then ",
     "The decoration was ",
@@ -135,14 +134,14 @@ starters = [
 
 
 def get_future_prediction(lines):
-    tag_seed = "England London UK cafe restaurant food cooking "
+    tag_seed = "restaurant food cooking "
     input_text = tag_seed + lines[0] + "\n"
     _index = 0
     lines = starters + lines[:1]
     lines = random.sample(lines, len(lines))
     new_text = input_text
-    while len(new_text.split()) - len(input_text.split()) < 200:
-        new_text += continue_string(new_text, length=80)
+    while len(new_text.split()) - len(input_text.split()) < 95:
+        new_text += continue_string(new_text, length=55)
         if "<|endoftext|>" in new_text:
             new_text = new_text[: new_text.rfind("<|endoftext|>")]
         period_position = new_text.rfind(".")

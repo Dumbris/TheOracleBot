@@ -17,12 +17,13 @@ from deeppavlov import build_model, configs
 import numpy as np
 import pandas as pd
 
-from aiogram.contrib.middlewares.logging import LoggingMiddleware    
+from aiogram.contrib.middlewares.logging import LoggingMiddleware
 
 #from config import TOKEN
 
 TOKEN = open('telegram_token', 'r').read()
-#PROXY = "socks5://127.0.0.1:9050"
+print(TOKEN)
+PROXY = "socks5://127.0.0.1:9050"
 
 OUTPUTFILE = "output.jsonl"
 
@@ -34,13 +35,13 @@ print('\n\nLoading model')
 BERT = build_model(configs.squad.squad, download=True)
 
 print('\n\n\n\n\n', 30*'---', '\nCreating bot')
-token = open('telegram_token', 'r').read()
 
 df = pd.read_json("data/london_2020s.jsonl", lines=True)
 
 
 futures = {}
 
+#bot = Bot(token=TOKEN, proxy=PROXY)
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
 dp.middleware.setup(LoggingMiddleware())
@@ -101,25 +102,23 @@ async def process_help_command(msg: types.Message):
                                       "Wait for a bit and I will come back with something for you.")
     review = [t.replace("...", " ") for t in text.split("\n") if t.strip() != '']
     futures[msg.from_user.id] = get_future_prediction(review)
-
+    await write_answer({"data":futures[msg.from_user.id], "rest":name, "review":text, "user":user_to_dict(msg.from_user)})
     await bot.send_message(
                         msg.from_user.id, 'You can ask me anything now, '
                         'or you can try to dive all by yourself in the messages from your memory.',
                         reply_markup=markup)
 
 
-@dp.message_handler(regexp="Total recall.")
-async def show_all(msg: types.Message):
-    if msg.from_user.id in futures:
-        await bot.send_message(msg.from_user.id, futures[msg.from_user.id])
-
 @dp.message_handler()
 async def echo_message(msg: types.Message):
     if msg.text in set(BUTTONS.values()):
+        if msg.from_user.id in futures:
+            await bot.send_message(msg.from_user.id, futures[msg.from_user.id])
         return
     if msg.from_user.id in futures:
         await bot.send_message(msg.from_user.id, answer_if_confident(msg.text, futures[msg.from_user.id]))
-    await bot.send_message(msg.from_user.id, "Try /start")
+    else:
+        await bot.send_message(msg.from_user.id, "Try /start")
 
 if __name__ == '__main__':
     print('\n\n\n\n\n', 30*'---', '\nTry your bot')
